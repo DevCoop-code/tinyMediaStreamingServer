@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
                     if (read == NULL) {
                         FD_CLR(i, &reads);
                         close(i);
-                        printf("closed client: %d \n", i);
+                        printf("Disconnected client: %d \n \n", i);
                     } else {
                         request_handler(i, req_line, clnt_read);
                     }
