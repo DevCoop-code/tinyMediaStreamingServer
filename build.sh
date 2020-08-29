@@ -1,5 +1,5 @@
 #!/bin/bash
-rootBuildPath=TMSS
+rootBuildPath=TMSS_Source
 export objectFileSet
 export sourceFileExtension
 export libraryFileSet
