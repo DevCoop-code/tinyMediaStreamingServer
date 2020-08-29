@@ -74,7 +74,6 @@ int main(int argc, char* argv[]) {
         }
         if (fd_num == 0) {
             // timeout
-            printf("timeout \n");
             continue;
         }
 
@@ -96,7 +95,7 @@ int main(int argc, char* argv[]) {
                     FILE* clnt_read;
                     clnt_read = fdopen(i, "r");
                     char* read = fgets(req_line, SMALL_BUF, clnt_read);
-                    
+                    // printf("hankyo: %d, %s \n", i, read);
                     if (read == NULL) {
                         FD_CLR(i, &reads);
                         close(i);
@@ -173,8 +172,6 @@ void send_data(FILE* fp, char* ct, char* file_name) {
         fputs(buf, fp);
         fflush(fp);
     }
-
-    printf("hello sending...... \n");
 
     fflush(fp);
     fclose(fp);
