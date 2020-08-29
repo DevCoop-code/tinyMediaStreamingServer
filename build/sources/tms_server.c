@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
                     clnt_read = fdopen(i, "r");
                     char* read = fgets(req_line, SMALL_BUF, clnt_read);
                     // printf("hankyo: %d, %s \n", i, read);
-                    if (read == NULL) {
+                    if (read == NULL || req_line == NULL) {
                         FD_CLR(i, &reads);
                         close(i);
                         printf("Disconnected client: %d \n \n", i);
