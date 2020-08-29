@@ -1,20 +1,16 @@
 #!/bin/bash
-rootBuildPath=$1
+rootBuildPath=TMSS
 export objectFileSet
 export sourceFileExtension
 export libraryFileSet
 
 echo "=====Build C/C++ using gcc compiler====="
 
-if [ -d output ]; then
-	echo "output directory already exists"
+if [ -d tinyMediaStreamingServer ]; then
+	echo "tinyMediaStreamingServer directory already exists"
 else
-	$(mkdir output)
+	$(mkdir tinyMediaStreamingServer)
 fi
-
-
-# Delete all of old output data
-$(rm -rf output/*)
 
 if [ -d temp ]; then
 	echo "temp directory already exists"
@@ -63,11 +59,11 @@ if [ -d ${rootBuildPath}/libs ]; then
 fi
 
 if [ ${sourceFileExtension} == 'cpp' ]; then
-	g++ $libraryFileSet $objectFileSet -o output/main
+	g++ $libraryFileSet $objectFileSet -o tinyMediaStreamingServer/TMSS
 else
-	gcc $libraryFileSet $objectFileSet -o output/main
+	gcc $libraryFileSet $objectFileSet -o tinyMediaStreamingServer/TMSS
 fi
 
-echo "===DONE==="
-
 $(rm -rf temp/)
+
+echo "===DONE==="
