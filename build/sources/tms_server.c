@@ -95,7 +95,6 @@ int main(int argc, char* argv[]) {
                     FILE* clnt_read;
                     clnt_read = fdopen(i, "r");
                     char* read = fgets(req_line, SMALL_BUF, clnt_read);
-                    // printf("hankyo: %d, %s \n", i, read);
                     if (read == NULL || req_line == NULL) {
                         FD_CLR(i, &reads);
                         close(i);
@@ -142,8 +141,8 @@ void request_handler(int clnt_sockfd, char* req_line, FILE* clnt_read) {
         return;
     }
 
-    close(clnt_read);
     send_data(clnt_write, ct, file_name);
+    close(clnt_read);
 }
 
 void send_data(FILE* fp, char* ct, char* file_name) {
@@ -174,6 +173,11 @@ void send_data(FILE* fp, char* ct, char* file_name) {
     }
 
     fflush(fp);
+
+    // Setting the timeout
+    sleep(2);
+
+    shutdown(fileno(fp), SHUT_WR);
     fclose(fp);
 }
 
