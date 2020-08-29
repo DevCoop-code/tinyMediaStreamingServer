@@ -13,7 +13,7 @@
 #define BUF_SIZE 1024
 #define SMALL_BUF 100
 
-void request_handler(int clnt_sockfd);
+void request_handler(int clnt_sockfd, char* req_line);
 void send_data(FILE* fp, char* ct, char* file_name);
 char* content_type(char* file);
 void send_error(FILE* fp);
@@ -68,6 +68,7 @@ int main(int argc, char* argv[]) {
 
         int fd_num = select(fd_max + 1, &cpy_reads, 0, 0, &timeout);
         if (fd_num == -1) {
+            perror("select");
             error_handling("select error");
             break;
         }
@@ -80,7 +81,6 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < fd_max + 1; i++) {
             if (FD_ISSET(i, &cpy_reads)) {      // 상태 변화가 있었던(수신된 데이터가 있는 소켓의) 파일 디스크립터를 찾고 있음
                 if (i == serv_sock) {
-                    printf("hello prepare to accept the client connection...... \n");
                     socklen_t adr_sz = sizeof(clnt_adr);
                     clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_adr, &adr_sz);
                     FD_SET(clnt_sock, &reads);
@@ -90,7 +90,19 @@ int main(int argc, char* argv[]) {
                     printf("Connected client: %d \n", clnt_sock);
                 }
                 else {      // Read Message
-                    request_handler(i);     // 'i' is the clnt_sock file descriptor
+                    char req_line[SMALL_BUF];
+                    // int str_len = read(i, req_line, SMALL_BUF);
+                    FILE* clnt_read;
+                    clnt_read = fdopen(i, "r");
+                    char* read = fgets(req_line, SMALL_BUF, clnt_read);
+                    
+                    if (read == NULL) {
+                        FD_CLR(i, &reads);
+                        close(i);
+                        printf("closed client: %d \n", i);
+                    } else {
+                        request_handler(i, req_line);     // 'i' is the clnt_sock file descriptor
+                    }
                 }
             }
         }
@@ -101,27 +113,23 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void request_handler(int clnt_sockfd) {
-    char req_line[SMALL_BUF];
-    FILE* clnt_read;
+void request_handler(int clnt_sockfd, char* req_line) {
     FILE* clnt_write;
 
     char method[10];
     char ct[15];
     char file_name[30];
 
-    clnt_read = fdopen(clnt_sockfd, "r");
     clnt_write = fdopen(dup(clnt_sockfd), "w");
     
-    fgets(req_line, SMALL_BUF, clnt_read);
     printf("Request DATA: %s \n", req_line);
 
     // Check It is 'HTTP' protocol
     if (strstr(req_line, "HTTP/") == NULL) {
         printf("Request is not using HTTP Protocol \n");
         send_error(clnt_write);
-        fclose(clnt_read);
-        fclose(clnt_write);
+        // fclose(clnt_read);
+        // fclose(clnt_write);
         return;
     }
 
@@ -130,15 +138,11 @@ void request_handler(int clnt_sockfd) {
     strcpy(ct, content_type(file_name));
     if (strcmp(method, "GET") != 0) {
         send_error(clnt_write);
-        close(clnt_read);
         close(clnt_write);
         return;
     }
-    close(clnt_read);
-    send_data(clnt_write, ct, file_name);
 
-    // Half-Close
-    shutdown(clnt_sockfd, SHUT_WR);
+    send_data(clnt_write, ct, file_name);
 }
 
 void send_data(FILE* fp, char* ct, char* file_name) {
@@ -167,6 +171,9 @@ void send_data(FILE* fp, char* ct, char* file_name) {
         fputs(buf, fp);
         fflush(fp);
     }
+
+    printf("hello sending...... \n");
+
     fflush(fp);
     fclose(fp);
 }
