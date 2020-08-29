@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <sys/select.h>
 
-#define BUF_SIZE 100
+#define BUF_SIZE 1024
 #define SMALL_BUF 100
 
 void request_handler(int clnt_sockfd);
@@ -77,18 +77,18 @@ int main(int argc, char* argv[]) {
                     printf("Connected client: %d \n", clnt_sock);
                 }
                 else {      // Read Message
-                    // request_handler(i);     // 'i' is the clnt_sock file descriptor
+                    request_handler(i);     // 'i' is the clnt_sock file descriptor
 
                     // 'i' is the clnt_sock file descriptor
-                    int str_len = read(i, buf, BUF_SIZE);
-                    if (str_len == 0) {
-                        FD_CLR(i, &reads);
-                        close(i);
-                        printf("Closed Client: %d \n", i);
-                    } else {
-                        // When send to client message
-                        write(i, buf, str_len);
-                    }
+                    // int str_len = read(i, buf, BUF_SIZE);
+                    // if (str_len == 0) {
+                    //     FD_CLR(i, &reads);
+                    //     close(i);
+                    //     printf("Closed Client: %d \n", i);
+                    // } else {
+                    //     // When send to client message
+                    //     write(i, buf, str_len);
+                    // }
                 }
             }
         }
@@ -103,7 +103,92 @@ void request_handler(int clnt_sockfd) {
     FILE* clnt_read;
     FILE* clnt_write;
 
+    char method[10];
+    char ct[15];
+    char file_name[30];
 
+    clnt_read = fdopen(clnt_sockfd, "r");
+    clnt_write = fdopen(dup(clnt_sockfd), "w");
+    
+    fgets(req_line, SMALL_BUF, clnt_read);
+    printf("Request DATA: %s \n", req_line);
+
+    // Check It is 'HTTP' protocol
+    if (strstr(req_line, "HTTP/") == NULL) {
+        printf("Request is not using HTTP Protocol \n");
+        send_error(clnt_write);
+        fclose(clnt_read);
+        fclose(clnt_write);
+        return;
+    }
+
+    strcpy(method, strtok(req_line, " /"));
+    strcpy(file_name, strtok(NULL, " /"));
+    strcpy(ct, content_type(file_name));
+    if (strcmp(method, "GET") != 0) {
+        send_error(clnt_write);
+        close(clnt_read);
+        close(clnt_write);
+        return;
+    }
+    close(clnt_read);
+    send_data(clnt_write, ct, file_name);
+}
+
+void send_data(FILE* fp, char* ct, char* file_name) {
+    char protocol[] = "HTTP/1.0 200 0K \r\n";
+    char server[] = "Server:Linux Web Server \r\n";
+    char cnt_len[] = "Content-length:2048\r\n";
+    char cnt_type[SMALL_BUF];
+    char buf[BUF_SIZE];
+    FILE* send_file;
+
+    sprintf(cnt_type, "Content-type: %s \r\n\r\n", ct); //sprintf: 서식을 지정하여 문자열을 만들 수 있음
+    send_file = fopen(file_name, "r");
+    if (send_file == NULL) {
+        send_error(fp);
+        return;
+    }
+
+    /* 헤더 정보 전송 */
+    fputs(protocol, fp);
+    fputs(server, fp);
+    fputs(cnt_len, fp);
+    fputs(cnt_type, fp);
+
+    /* 요청 데이터 전송 */
+    while(fgets(buf, BUF_SIZE, send_file) != NULL) {
+        fputs(buf, fp);
+        fflush(fp);
+    }
+    fflush(fp);
+    fclose(fp);
+}
+
+char* content_type(char* file) {
+    char extension[SMALL_BUF];
+    char file_name[SMALL_BUF];
+    strcpy(file_name, file);
+    strtok(file_name, ".");
+    strcpy(extension, strtok(NULL, "."));
+
+    if (!strcmp(extension, "html") || !strcmp(extension, "htm")) {
+        return "text/html";
+    } else {
+        return "text/plain";
+    }
+}
+
+void send_error(FILE* fp) {
+    char protocol[] = "HTTP/1.0 400 Bad Request\r\n";
+    char server[] = "Server:Linux Web Server \r\n";
+    char cnt_len[] = "Content-length:2048\r\n";
+    char cnt_type[] = "Content-type:text/html\r\n\r\n";
+    char content[] = "<html><head><title>NETWORK</title></head><body><font size=+5><br>오류 발생! 요청 파일명 및 요청 방식 확인!</font></body></html>";
+    fputs(protocol, fp);
+    fputs(server, fp);
+    fputs(cnt_type, fp);
+    fflush(fp);
 }
 
 void error_handling(char* buf) {
