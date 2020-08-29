@@ -77,19 +77,19 @@ int main(int argc, char* argv[]) {
                     printf("Connected client: %d \n", clnt_sock);
                 }
                 else {      // Read Message
-                // request_handler(i);     // 'i' is the clnt_sock file descriptor
+                    // request_handler(i);     // 'i' is the clnt_sock file descriptor
 
-                // 'i' is the clnt_sock file descriptor
-                int str_len = read(i, buf, BUF_SIZE);
-                if (str_len == 0) {
-                    FD_CLR(i, &reads);
-                    close(i);
-                    printf("Closed Client: %d \n", i);
-                } else {
-                    // When send to client message
-                    write(i, buf, str_len);
+                    // 'i' is the clnt_sock file descriptor
+                    int str_len = read(i, buf, BUF_SIZE);
+                    if (str_len == 0) {
+                        FD_CLR(i, &reads);
+                        close(i);
+                        printf("Closed Client: %d \n", i);
+                    } else {
+                        // When send to client message
+                        write(i, buf, str_len);
+                    }
                 }
-            }
             }
         }
     }
