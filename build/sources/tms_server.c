@@ -7,6 +7,9 @@
 #include <sys/time.h>
 #include <sys/select.h>
 
+#define TRUE 1
+#define FALSE 0
+
 #define BUF_SIZE 1024
 #define SMALL_BUF 100
 
@@ -29,6 +32,16 @@ int main(int argc, char* argv[]) {
     }
 
     serv_sock = socket(PF_INET, SOCK_STREAM, 0);
+    if (serv_sock == -1) {
+        error_handling("socket() error");
+    }
+
+    // Prevent the Binding Error
+    int option;
+    socklen_t optlen = sizeof(option);
+    option = TRUE;
+    setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, (void*)&option, optlen);
+
     memset(&serv_adr, 0, sizeof(serv_adr));
     serv_adr.sin_family = AF_INET;
     serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -84,6 +97,7 @@ int main(int argc, char* argv[]) {
     }
 
     close(serv_sock);
+    close(clnt_sock);
     return 0;
 }
 
@@ -122,6 +136,9 @@ void request_handler(int clnt_sockfd) {
     }
     close(clnt_read);
     send_data(clnt_write, ct, file_name);
+
+    // Half-Close
+    shutdown(clnt_sockfd, SHUT_WR);
 }
 
 void send_data(FILE* fp, char* ct, char* file_name) {
