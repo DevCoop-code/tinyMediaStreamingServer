@@ -90,6 +90,7 @@ int main(int argc, char* argv[]) {
                     printf("Connected client: %d \n", clnt_sock);
                 }
                 else {      // Read Message
+                    // 'i' is the clnt_sock file descriptor
                     char req_line[SMALL_BUF];
                     // int str_len = read(i, req_line, SMALL_BUF);
                     FILE* clnt_read;
@@ -101,7 +102,7 @@ int main(int argc, char* argv[]) {
                         close(i);
                         printf("closed client: %d \n", i);
                     } else {
-                        request_handler(i, req_line, clnt_read);     // 'i' is the clnt_sock file descriptor
+                        request_handler(i, req_line, clnt_read);
                     }
                 }
             }
