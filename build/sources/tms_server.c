@@ -13,7 +13,7 @@
 #define BUF_SIZE 1024
 #define SMALL_BUF 100
 
-void request_handler(int clnt_sockfd, char* req_line);
+void request_handler(int clnt_sockfd, char* req_line, FILE* clnt_read);
 void send_data(FILE* fp, char* ct, char* file_name);
 char* content_type(char* file);
 void send_error(FILE* fp);
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
                         close(i);
                         printf("closed client: %d \n", i);
                     } else {
-                        request_handler(i, req_line);     // 'i' is the clnt_sock file descriptor
+                        request_handler(i, req_line, clnt_read);     // 'i' is the clnt_sock file descriptor
                     }
                 }
             }
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void request_handler(int clnt_sockfd, char* req_line) {
+void request_handler(int clnt_sockfd, char* req_line, FILE* clnt_read) {
     FILE* clnt_write;
 
     char method[10];
@@ -142,6 +142,7 @@ void request_handler(int clnt_sockfd, char* req_line) {
         return;
     }
 
+    close(clnt_read);
     send_data(clnt_write, ct, file_name);
 }
 
