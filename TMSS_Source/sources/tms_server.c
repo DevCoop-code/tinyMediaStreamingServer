@@ -217,8 +217,6 @@ void send_data(FILE* fp, char* ct, char* file_name) {
 
     sprintf(cnt_type, "Content-type: %s \r\n\r\n", ct); //sprintf: 서식을 지정하여 문자열을 만들 수 있음
 
-    printf("send_data contentType: %s \n", ct);
-    printf("send_data filename: %s \n", file_name);
     send_file = fopen(file_name, "r");
     if (send_file == NULL) {
         send_error(fp);
