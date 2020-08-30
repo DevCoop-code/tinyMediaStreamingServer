@@ -59,9 +59,9 @@ if [ -d ${rootBuildPath}/libs ]; then
 fi
 
 if [ ${sourceFileExtension} == 'cpp' ]; then
-	g++ $libraryFileSet $objectFileSet -o tinyMediaStreamingServer/TMSS
+	g++ $libraryFileSet $objectFileSet -o tinyMediaStreamingServer/tmss_server
 else
-	gcc $libraryFileSet $objectFileSet -o tinyMediaStreamingServer/TMSS
+	gcc $libraryFileSet $objectFileSet -o tinyMediaStreamingServer/tmss_server
 fi
 
 $(rm -rf temp/)
