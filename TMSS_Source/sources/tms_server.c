@@ -133,16 +133,30 @@ void request_handler(int clnt_sockfd, char* req_line) {
         return;
     }
 
-    strcpy(method, strtok(req_line, " /"));
-    strcpy(file_name, strtok(NULL, " /"));
+    strcpy(method, strtok(req_line, " "));
+    strcpy(file_name, strtok(NULL, " "));
     strcpy(ct, content_type(file_name));
+
+    char file[250];
+    char* file_token = strtok(file_name, "/");
+    strcat(file, file_token);
+    
+    while (file_token != NULL) {
+        file_token = strtok(NULL, "/");
+        if (file_token != NULL) {
+            strcat(file, "/");
+            strcat(file, file_token);
+        }
+    }
+    printf("Request Message Line Information: method[%s], filename[%s], contenttype[%s] \n", method, file, ct);
+
     if (strcmp(method, "GET") != 0) {
         send_error(clnt_write);
         close(clnt_write);
         return;
     }
 
-    send_data(clnt_write, ct, file_name);
+    send_data(clnt_write, ct, file);
 }
 
 void send_data(FILE* fp, char* ct, char* file_name) {
