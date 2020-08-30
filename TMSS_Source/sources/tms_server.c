@@ -13,7 +13,7 @@
 #define BUF_SIZE 1024
 #define SMALL_BUF 100
 
-void request_handler(int clnt_sockfd, char* req_line);
+void request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line);
 void send_data(FILE* fp, char* ct, char* file_name);
 char* content_type(char* file);
 void send_error(FILE* fp);
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
                         close(i);
                         printf("Disconnected client: %d \n \n", i);
                     } else {
-                        request_handler(i, req_line);
+                        request_handler(i, clnt_read, req_line);
                     }
                 }
             }
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void request_handler(int clnt_sockfd, char* req_line) {
+void request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
     FILE* clnt_write;
 
     char method[10];
