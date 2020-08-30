@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/select.h>
+#include <stdbool.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -13,7 +14,13 @@
 #define BUF_SIZE 1024
 #define SMALL_BUF 100
 
-void request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line);
+typedef struct RequestLine {
+    char method[10];			// method
+    char ct[15];				// content_type
+    char file_name[30];			// request file name
+} RequestLine;
+
+RequestLine request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line);
 void send_data(FILE* fp, char* ct, char* file_name);
 char* content_type(char* file);
 void send_error(FILE* fp);
@@ -90,18 +97,50 @@ int main(int argc, char* argv[]) {
                 }
                 else {      // Read Message
                     // 'i' is the clnt_sock file descriptor
-                    char req_line[SMALL_BUF];
+                    int requestMessageIndex = 0;
+                   
                     // int str_len = read(i, req_line, SMALL_BUF);
-                    FILE* clnt_read;
-                    clnt_read = fdopen(i, "r");
-                    char* read = fgets(req_line, SMALL_BUF, clnt_read);
-                    if (read == NULL || req_line == NULL) {
-                        FD_CLR(i, &reads);
-                        close(i);
-                        printf("Disconnected client: %d \n \n", i);
-                    } else {
-                        request_handler(i, clnt_read, req_line);
+                    FILE* clnt_read = fdopen(i, "r");
+                    FILE* clnt_write  = fdopen(dup(i), "w");
+                    RequestLine requestLineInfo;
+                    bool requestBodyFlag = FALSE;
+
+                    while (1) {
+                        char req_line[SMALL_BUF];
+
+                        // Read Request Line
+                        char* read = fgets(req_line, SMALL_BUF, clnt_read);
+                        requestMessageIndex++;
+
+                        if (read == NULL) {
+                            FD_CLR(i, &reads);
+                            close(i);
+                            printf("Disconnected client: %d \n", i);
+                            break;
+                        } else {
+                            if (requestMessageIndex == 1) {         // Request Line
+                                requestLineInfo = request_handler(i, clnt_read, req_line);
+                            }
+
+                            if (requestMessageIndex > 1) {          // Message Header
+                                if (req_line[0] == 13 || req_line[0] == 10) {
+                                    requestBodyFlag = TRUE;
+                                }
+
+                                if (!requestBodyFlag) {
+                                    printf("MessageHeader: [%s] \n", req_line);
+                                }else {
+                                    if (strcmp(requestLineInfo.method, "GET") == 0) {
+                                        printf("GET send_data \n");
+                                        send_data(clnt_write, requestLineInfo.ct, requestLineInfo.file_name);
+                                        fclose(clnt_read);
+                                    }
+                                    printf("MessageBody: [%s] \n", req_line);
+                                }
+                            }
+                        }
                     }
+                    
                 }
             }
         }
@@ -112,24 +151,22 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
-    FILE* clnt_write;
+RequestLine request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
 
+    RequestLine requestLineInfo;
     char method[10];
     char ct[15];
     char file_name[30];
-
-    clnt_write = fdopen(dup(clnt_sockfd), "w");
     
     printf("Request DATA: %s \n", req_line);
 
     // Check It is 'HTTP' protocol
     if (strstr(req_line, "HTTP/") == NULL) {
         printf("Request is not using HTTP Protocol \n");
-        send_error(clnt_write);
+        // send_error(clnt_write);
         // fclose(clnt_read);
         // fclose(clnt_write);
-        return;
+        // return;
     }
 
     strcpy(method, strtok(req_line, " "));
@@ -150,12 +187,24 @@ void request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
     printf("Request Message Line Information: method[%s], filename[%s], contenttype[%s] \n", method, file, ct);
 
     if (strcmp(method, "GET") != 0) {
-        send_error(clnt_write);
-        close(clnt_write);
-        return;
+        // send_error(clnt_write);
+        // close(clnt_write);
+        // return;
     }
 
-    send_data(clnt_write, ct, file);
+    if (strcmp(method, "GET") == 0) {
+        printf("get request message \n");
+        strcpy(requestLineInfo.method, method);
+        strcpy(requestLineInfo.ct, ct);
+        strcpy(requestLineInfo.file_name, file);
+
+        // send_data(clnt_write, ct, file);
+    }
+    else if (strcmp(method, "POST") == 0) {
+        printf("post request message \n");
+    }
+
+    return requestLineInfo;
 }
 
 void send_data(FILE* fp, char* ct, char* file_name) {
@@ -167,6 +216,9 @@ void send_data(FILE* fp, char* ct, char* file_name) {
     FILE* send_file;
 
     sprintf(cnt_type, "Content-type: %s \r\n\r\n", ct); //sprintf: 서식을 지정하여 문자열을 만들 수 있음
+
+    printf("send_data contentType: %s \n", ct);
+    printf("send_data filename: %s \n", file_name);
     send_file = fopen(file_name, "r");
     if (send_file == NULL) {
         send_error(fp);
