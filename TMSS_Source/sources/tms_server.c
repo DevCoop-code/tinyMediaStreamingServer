@@ -101,7 +101,6 @@ int main(int argc, char* argv[]) {
                         printf("Disconnected client: %d \n \n", i);
                     } else {
                         request_handler(i, req_line);
-                        close(clnt_read);
                     }
                 }
             }
