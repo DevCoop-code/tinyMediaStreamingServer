@@ -20,7 +20,7 @@ typedef struct RequestLine {
     char file_name[30];			// request file name
 } RequestLine;
 
-RequestLine request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line);
+RequestLine request_handler(FILE* clnt_write, FILE* clnt_read, char* req_line);
 void send_data(FILE* fp, char* ct, char* file_name);
 char* content_type(char* file);
 void send_error(FILE* fp);
@@ -119,23 +119,35 @@ int main(int argc, char* argv[]) {
                             break;
                         } else {
                             if (requestMessageIndex == 1) {         // Request Line
-                                requestLineInfo = request_handler(i, clnt_read, req_line);
+                                requestLineInfo = request_handler(clnt_write, clnt_read, req_line);
                             }
 
                             if (requestMessageIndex > 1) {          // Message Header
                                 if (req_line[0] == 13 || req_line[0] == 10) {
+                                    printf("Empty Line: [%s] \n", req_line);
                                     requestBodyFlag = TRUE;
                                 }
 
-                                if (!requestBodyFlag) {
+                                if (!requestBodyFlag) {             // Message Body
                                     printf("MessageHeader: [%s] \n", req_line);
-                                }else {
+                                } else {
                                     if (strcmp(requestLineInfo.method, "GET") == 0) {
                                         printf("GET send_data \n");
                                         send_data(clnt_write, requestLineInfo.ct, requestLineInfo.file_name);
                                         fclose(clnt_read);
                                     }
-                                    printf("MessageBody: [%s] \n", req_line);
+                                    if (strcmp(requestLineInfo.method, "POST") == 0) {
+                                        printf("POST send_data \n");
+                                        
+                                        char messageBody[24];
+                                        fgets(messageBody, 24, clnt_read);
+                                        printf("MessageBody: [%s] \n", messageBody);
+
+                                        sleep (2);
+                                        shutdown(fileno(clnt_write), SHUT_WR);
+                                        fclose(clnt_write);
+                                        fclose(clnt_read);
+                                    }
                                 }
                             }
                         }
@@ -151,7 +163,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-RequestLine request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
+RequestLine request_handler(FILE* clnt_write, FILE* clnt_read, char* req_line) {
 
     RequestLine requestLineInfo;
     char method[10];
@@ -163,15 +175,16 @@ RequestLine request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
     // Check It is 'HTTP' protocol
     if (strstr(req_line, "HTTP/") == NULL) {
         printf("Request is not using HTTP Protocol \n");
-        // send_error(clnt_write);
-        // fclose(clnt_read);
-        // fclose(clnt_write);
-        // return;
+        send_error(clnt_write);
+        fclose(clnt_read);
+        fclose(clnt_write);
     }
 
     strcpy(method, strtok(req_line, " "));
     strcpy(file_name, strtok(NULL, " "));
-    strcpy(ct, content_type(file_name));
+    if (strcmp(method, "GET") == 0) {
+        strcpy(ct, content_type(file_name));
+    }
 
     char file[250];
     char* file_token = strtok(file_name, "/");
@@ -186,23 +199,9 @@ RequestLine request_handler(int clnt_sockfd, FILE* clnt_read, char* req_line) {
     }
     printf("Request Message Line Information: method[%s], filename[%s], contenttype[%s] \n", method, file, ct);
 
-    if (strcmp(method, "GET") != 0) {
-        // send_error(clnt_write);
-        // close(clnt_write);
-        // return;
-    }
-
-    if (strcmp(method, "GET") == 0) {
-        printf("get request message \n");
-        strcpy(requestLineInfo.method, method);
-        strcpy(requestLineInfo.ct, ct);
-        strcpy(requestLineInfo.file_name, file);
-
-        // send_data(clnt_write, ct, file);
-    }
-    else if (strcmp(method, "POST") == 0) {
-        printf("post request message \n");
-    }
+    strcpy(requestLineInfo.method, method);
+    strcpy(requestLineInfo.ct, ct);
+    strcpy(requestLineInfo.file_name, file);
 
     return requestLineInfo;
 }
