@@ -20,6 +20,10 @@ typedef struct RequestLine {
     char file_name[30];			// request file name
 } RequestLine;
 
+typedef struct MessageHeader {
+    unsigned long long contentLength;
+} MessageHeader;
+
 RequestLine request_handler(FILE* clnt_write, FILE* clnt_read, char* req_line);
 void send_data(FILE* fp, char* ct, char* file_name);
 char* content_type(char* file);
@@ -104,6 +108,7 @@ int main(int argc, char* argv[]) {
                     FILE* clnt_write  = fdopen(dup(i), "w");
                     RequestLine requestLineInfo;
                     bool requestBodyFlag = FALSE;
+                    MessageHeader messageheaderStruct;
 
                     while (1) {
                         char req_line[SMALL_BUF];
@@ -130,6 +135,25 @@ int main(int argc, char* argv[]) {
 
                                 if (!requestBodyFlag) {             // Message Body
                                     printf("MessageHeader: [%s] \n", req_line);
+                                    // Parsing Content-Length
+                                    char* messageHeaderKey = strtok(req_line, " ");
+                                    if (strcmp(messageHeaderKey, "Content-Length:") == 0) {
+                                        unsigned long long contentLengthNum = 0;
+                                        char* contentLengthChar = strtok(NULL, " ");
+                                        int contentLengthCharArraySize = (sizeof(contentLengthChar) / 4);
+                                        for (int i = 0; i < contentLengthCharArraySize; i++) {
+                                            int digitNum = contentLengthCharArraySize - (i + 1);
+
+                                            int digit = 1;
+                                            for (int j = 0; j < digitNum; j++) {
+                                                digit *= 10;
+                                            }
+                                            contentLengthNum += ((unsigned long long)(contentLengthChar[i] - '0')) * digit;
+                                        }
+                                        
+                                        messageheaderStruct.contentLength = contentLengthNum;
+                                        printf("Content Length value: %llu \n", messageheaderStruct.contentLength);
+                                    }
                                 } else {
                                     if (strcmp(requestLineInfo.method, "GET") == 0) {
                                         printf("GET send_data \n");
