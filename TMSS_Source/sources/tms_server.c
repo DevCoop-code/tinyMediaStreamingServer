@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
                                             }
                                             contentLengthNum += ((unsigned long long)(contentLengthChar[i] - '0')) * digit;
                                         }
-                                        
+
                                         messageheaderStruct.contentLength = contentLengthNum;
                                         printf("Content Length value: %llu \n", messageheaderStruct.contentLength);
                                     }
@@ -163,8 +163,8 @@ int main(int argc, char* argv[]) {
                                     if (strcmp(requestLineInfo.method, "POST") == 0) {
                                         printf("POST send_data \n");
                                         
-                                        char messageBody[24];
-                                        fgets(messageBody, 24, clnt_read);
+                                        char messageBody[messageheaderStruct.contentLength + 1];
+                                        fgets(messageBody, messageheaderStruct.contentLength + 1, clnt_read);
                                         printf("MessageBody: [%s] \n", messageBody);
 
                                         sleep (2);
